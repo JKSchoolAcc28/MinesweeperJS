@@ -1,6 +1,7 @@
 import './style.css'
 import GameEngine, { Color, Cell } from './GameEngine';
 
+const FLAG_IMAGE_ASSET = "./src/assets/flag.png";
 
 class GUI
 {
@@ -11,6 +12,8 @@ class GUI
     engine: GameEngine;
     
     cellSize: number;
+
+    flagImage: HTMLImageElement;
 
     constructor()
     {
@@ -26,8 +29,11 @@ class GUI
         this.cellSize = Math.floor(Math.min(boundingBox.width/this.engine.cols, boundingBox.height/this.engine.rows));
         this.ctx.font = `bold ${this.board.width/boundingBox.width*10}px sans-serif`;
         
-        
-        window.addEventListener("resize", (e)=>{
+        this.flagImage = new Image();
+        this.flagImage.src = FLAG_IMAGE_ASSET;
+
+
+        window.addEventListener("resize", (_)=>{
             
             const boundingBox = this.board.getBoundingClientRect();
             
@@ -69,6 +75,20 @@ class GUI
             this.draw();
         }
 
+        this.overlay.oncontextmenu = (e) => {
+            e.preventDefault();
+
+            const rect = this.board.getBoundingClientRect();
+            
+            const c = Math.floor((e.clientX - rect.left)/this.cellSize);
+            const r = Math.floor((e.clientY - rect.top)/this.cellSize);
+
+            this.engine.toggleFlag([c, r]);
+
+            this.erase();
+            this.draw();
+        }
+
     }
     
     private erase()
@@ -91,12 +111,16 @@ class GUI
                 if(this.engine.board[r][c] & Cell.IS_MINE)
                 {
                     this.ctx.fillStyle = "red";
-                    this.ctx.fillText("M", this.cellSize *c + 5, this.cellSize * r + 5 );
+                    this.ctx.fillText("M", this.cellSize *c + this.cellSize/4, this.cellSize * r + this.cellSize/4 );
                 }
-                else
+                else if(this.engine.board[r][c] & Cell.IS_REVEALED)
                 {
                     this.ctx.fillStyle = this.engine.getFontColor([c,r]);
-                    this.ctx.fillText(this.engine.getMines([c, r]).toString(), this.cellSize *c + this.cellSize/2, this.cellSize * r + this.cellSize/2);
+                    this.ctx.fillText(this.engine.getMines([c, r]).toString(), this.cellSize *c + this.cellSize/4, this.cellSize * r + this.cellSize/4);
+                }
+                else if(this.engine.board[r][c] & Cell.IS_FLAGGED)
+                {
+                    this.ctx.drawImage(this.flagImage, this.cellSize*c, this.cellSize*r, this.cellSize, this.cellSize);
                 }
             }
         }

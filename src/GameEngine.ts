@@ -12,6 +12,7 @@ export enum Cell
 {
     IS_MINE = 16,
     IS_REVEALED = 32,
+    IS_FLAGGED = 64,
     MAXIMUM_MINES = 0b1111
 
 }
@@ -51,7 +52,7 @@ export default class GameEngine
     {
         let mineCount = 0;
 
-        // this.getNeighboringCells([nX, nY]).forEach(([x, y])=> this.board[y][x] |= Cell.IS_REVEALED);
+        const neighbors = this.getNeighboringCells([nX, nY]);
 
         while(mineCount < this.maxMines)
         {
@@ -60,6 +61,7 @@ export default class GameEngine
 
             if(
                 (rX == nX && rY == nY) ||
+                (neighbors.filter(([tX, tY])=> tX == rX && tY == rY)).length != 0 ||
                 (this.board[rY][rX] & Cell.IS_MINE) ||
                 (this.board[rY][rX] & Cell.IS_REVEALED)
             ) continue;
@@ -134,7 +136,7 @@ export default class GameEngine
             this.started = true;
         }
 
-        if(this.board[y][x] & Cell.IS_REVEALED) return 0;
+        if(this.board[y][x] & Cell.IS_REVEALED || this.board[y][x] & Cell.IS_FLAGGED) return 0;
         
         if(this.board[y][x] & Cell.IS_MINE) return -1;
 
@@ -144,6 +146,14 @@ export default class GameEngine
 
 
         return 0;
+    }
+
+    public toggleFlag([x, y]: [number, number])
+    {
+        if(this.board[y][x] & Cell.IS_REVEALED)
+            return;
+
+        this.board[y][x] ^= Cell.IS_FLAGGED;
     }
 
     private flood_select(coords: [number, number])
