@@ -51,7 +51,7 @@ export default class GameEngine
     {
         let mineCount = 0;
 
-        this.getNeighboringCells([nX, nY]).forEach(([x, y])=> this.board[y][x] |= Cell.IS_REVEALED);
+        // this.getNeighboringCells([nX, nY]).forEach(([x, y])=> this.board[y][x] |= Cell.IS_REVEALED);
 
         while(mineCount < this.maxMines)
         {
@@ -154,17 +154,17 @@ export default class GameEngine
 
         while(queue.size > 0)
         {
-            console.log(queue);
+            // console.log(queue);
             let [x, y] = queue.remove()! as [number, number];
 
-            console.log(`(${x}, ${y})`)
+            // console.log(`(${x}, ${y})`)
 
             if(this.board[y][x] & Cell.IS_MINE || this.board[y][x] & Cell.IS_REVEALED) continue;
             
             this.board[y][x] |= Cell.IS_REVEALED;
             
             if(this.getMines([x,y]) === 0)
-                this.getNeighboringCells([x, y]).forEach(e=>queue.push(e));
+                this.getNeighboringCells([x, y]).forEach(e=>queue.push(e as [number, number]));
             
         }
     }

@@ -2,48 +2,122 @@ import './style.css'
 import GameEngine, { Color, Cell } from './GameEngine';
 
 
-const board = document.getElementById("board")! as HTMLCanvasElement;
-const ctx = board.getContext("2d")!;
-
-
-const boundingBox = board.getBoundingClientRect();
-board.width = boundingBox.width;
-board.height = boundingBox.height;
-
-const engine = new GameEngine(25, 25);
-
-
-// engine.generateMines([0,0]);
-engine.step([0,0]);
-engine.step([1,0]);
-
-const SIZE = Math.floor(Math.min(boundingBox.width/engine.cols, boundingBox.height/engine.rows));
-
-ctx.fillStyle = "black";
-ctx.textAlign = "left";
-ctx.textBaseline = "top";
-ctx.font = "bold 10px sans-serif";
-
-for(let r = 0; r < engine.rows; r++)
+class GUI
 {
-    for(let c = 0; c < engine.cols; c++)
-    {
-        ctx.fillStyle = engine.getBackgroundColor([c, r]);   
-        ctx.fillRect(SIZE * c, SIZE * r, SIZE, SIZE);
+    board: HTMLCanvasElement = document.getElementById("board")! as HTMLCanvasElement;
+    overlay: HTMLCanvasElement = document.getElementById("overlay")! as HTMLCanvasElement;
 
-        if(engine.board[r][c] & Cell.IS_MINE)
+    ctx: CanvasRenderingContext2D = this.board.getContext("2d")!;
+    engine: GameEngine;
+    
+    cellSize: number;
+
+    constructor()
+    {
+        const boundingBox = this.board.getBoundingClientRect();
+        
+        this.board.width = boundingBox.width;
+        this.board.height = boundingBox.height;
+        
+        this.overlay.width = boundingBox.width;
+        this.overlay.height = boundingBox.height;
+        
+        this.engine = new GameEngine(25, 25);
+        this.cellSize = Math.floor(Math.min(boundingBox.width/this.engine.cols, boundingBox.height/this.engine.rows));
+        this.ctx.font = `bold ${this.board.width/boundingBox.width*10}px sans-serif`;
+        
+        
+        window.addEventListener("resize", (e)=>{
+            
+            const boundingBox = this.board.getBoundingClientRect();
+            
+            this.board.width = boundingBox.width;
+            this.board.height = boundingBox.height;
+
+            this.overlay.width = boundingBox.width;
+            this.overlay.height = boundingBox.height;
+
+            this.cellSize = Math.floor(Math.min(boundingBox.width/this.engine.cols, boundingBox.height/this.engine.rows));
+            this.erase();
+            this.draw();
+        })
+
+        this.overlay.onmousemove = (e) =>
         {
-            ctx.fillStyle = "red";
-            ctx.fillText("M", SIZE *c + 5, SIZE * r + 5 );
+            const rect = this.board.getBoundingClientRect();
+
+            const c = Math.floor((e.clientX - rect.left)/this.cellSize);
+            const r = Math.floor((e.clientY - rect.top)/this.cellSize);
+
+            const overlayCtx = this.overlay.getContext("2d")!;
+
+            overlayCtx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+
+            overlayCtx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            overlayCtx.fillRect(c * this.cellSize, r * this.cellSize, this.cellSize, this.cellSize);
         }
-        else
+
+        this.overlay.onclick = (e) => {
+            const rect = this.board.getBoundingClientRect();
+
+            const c = Math.floor((e.clientX - rect.left)/this.cellSize);
+            const r = Math.floor((e.clientY - rect.top)/this.cellSize);
+
+            this.engine.step([c, r]);
+
+            this.erase();
+            this.draw();
+        }
+
+    }
+    
+    private erase()
+    {
+        this.ctx.clearRect(0, 0, this.board.width, this.board.height);
+    }
+    
+    draw()
+    {
+        this.ctx.textAlign = "left";
+        this.ctx.textBaseline = "top";
+        this.ctx.font = `bold 10px sans-serif`;
+        for(let r = 0; r < this.engine.rows; r++)
         {
-            ctx.fillStyle = engine.getFontColor([c,r]);
-            ctx.fillText(engine.getMines([c, r]).toString(), SIZE *c + 6.9, SIZE * r + 5 );
+            for(let c = 0; c < this.engine.cols; c++)
+            {
+                this.ctx.fillStyle = this.engine.getBackgroundColor([c, r]);   
+                this.ctx.fillRect(this.cellSize * c, this.cellSize * r, this.cellSize, this.cellSize);
+
+                if(this.engine.board[r][c] & Cell.IS_MINE)
+                {
+                    this.ctx.fillStyle = "red";
+                    this.ctx.fillText("M", this.cellSize *c + 5, this.cellSize * r + 5 );
+                }
+                else
+                {
+                    this.ctx.fillStyle = this.engine.getFontColor([c,r]);
+                    this.ctx.fillText(this.engine.getMines([c, r]).toString(), this.cellSize *c + this.cellSize/2, this.cellSize * r + this.cellSize/2);
+                }
+            }
         }
     }
 }
+
+
+
+
+// const engine = new GameEngine(25, 25);
+
+
+// engine.generateMines([0,0]);
+
+const gui = new GUI();
+
+gui.draw();
+
+
+
         
 
 
-document.getElementById("app")!.innerText = JSON.stringify(engine.board);
+

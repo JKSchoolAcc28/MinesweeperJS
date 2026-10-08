@@ -16,7 +16,7 @@ export default class Queue<T>
 
     push(val: T)
     {
-        if(this.head === undefined && this.tail == undefined)
+        if(this.head === undefined || this.tail == undefined)
         {
             this.head = {
                 value: val,
@@ -27,6 +27,7 @@ export default class Queue<T>
         else
         {
             this.tail!.next = { value: val };
+            this.tail = this.tail.next;
         }
 
         this.size++;
