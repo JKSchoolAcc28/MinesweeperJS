@@ -36,7 +36,11 @@ export default class GameEngine
     maxMines: number;
     started: boolean;
 
+    mines: [number, number][];
     board: number[][]
+    gameOver: boolean = false;
+
+    flagsUsed: number = 0;
 
     constructor(rows: number, cols: number, maxMines = 99)
     {
@@ -46,10 +50,14 @@ export default class GameEngine
         
         this.board = Array.from({length: this.rows}, ()=>Array.from({length: this.cols}, ()=>0));
         this.started = false;
+        this.mines = [];
     }
 
     generateMines([nX, nY]: [number, number])
     {
+
+        if(this.gameOver) return;
+
         let mineCount = 0;
 
         const neighbors = this.getNeighboringCells([nX, nY]);
@@ -68,6 +76,8 @@ export default class GameEngine
 
             this.board[rY][rX] |= Cell.IS_MINE;
             mineCount++;
+
+            this.mines.push([rX, rY]);
         }
 
         for(let r = 0; r< this.rows; r++)
@@ -77,6 +87,11 @@ export default class GameEngine
                 this.board[r][c] += this.preGetMines([c, r]);
             }
         }
+    }
+
+    public getMineLocations(): [number, number][]
+    {
+        return this.mines;
     }
 
     private preGetMines(coords: [number, number]): number
@@ -130,6 +145,8 @@ export default class GameEngine
 
     step([x, y]: [number, number]): number
     {
+        if(this.gameOver) return -2;
+
         if(!this.started)
         {
             this.generateMines([x, y]);
@@ -138,7 +155,11 @@ export default class GameEngine
 
         if(this.board[y][x] & Cell.IS_REVEALED || this.board[y][x] & Cell.IS_FLAGGED) return 0;
         
-        if(this.board[y][x] & Cell.IS_MINE) return -1;
+        if(this.board[y][x] & Cell.IS_MINE)
+        {
+            this.gameOver = true;
+            return -1;
+        }
 
         // this.board[y][x] |= Cell.IS_REVEALED;
 
@@ -154,6 +175,16 @@ export default class GameEngine
             return;
 
         this.board[y][x] ^= Cell.IS_FLAGGED;
+
+        if(this.board[y][x] & Cell.IS_FLAGGED)
+            this.flagsUsed++;
+        else
+            this.flagsUsed--;
+    }
+
+    public getNumberOfFlags(): number
+    {
+        return this.flagsUsed;
     }
 
     private flood_select(coords: [number, number])

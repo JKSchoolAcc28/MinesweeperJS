@@ -2,6 +2,7 @@ import './style.css'
 import GameEngine, { Color, Cell } from './GameEngine';
 
 const FLAG_IMAGE_ASSET = "./src/assets/flag.png";
+const MINE_IMAGE_ASSET = "./src/assets/mine.png";
 
 class GUI
 {
@@ -14,6 +15,7 @@ class GUI
     cellSize: number;
 
     flagImage: HTMLImageElement;
+    mineImage: HTMLImageElement;
 
     constructor()
     {
@@ -32,6 +34,8 @@ class GUI
         this.flagImage = new Image();
         this.flagImage.src = FLAG_IMAGE_ASSET;
 
+        this.mineImage = new Image();
+        this.mineImage.src = MINE_IMAGE_ASSET;
 
         window.addEventListener("resize", (_)=>{
             
@@ -69,10 +73,17 @@ class GUI
             const c = Math.floor((e.clientX - rect.left)/this.cellSize);
             const r = Math.floor((e.clientY - rect.top)/this.cellSize);
 
-            this.engine.step([c, r]);
+            const res = this.engine.step([c, r]);
 
-            this.erase();
-            this.draw();
+            
+            
+            if(res === -1)
+                this.blowup([c, r]);
+            else if(res !== -2)
+            {
+                this.erase();
+                this.draw();
+            }
         }
 
         this.overlay.oncontextmenu = (e) => {
@@ -95,6 +106,38 @@ class GUI
     {
         this.ctx.clearRect(0, 0, this.board.width, this.board.height);
     }
+
+    private distanceTo([x1, y1]: number[], [x2, y2]: number[]): number
+    {
+        return Math.sqrt(Math.pow((x2-x1),2) + Math.pow((y2-y1), 2));
+    }
+
+    async blowup(first: number[])
+    {
+        const mines = this.engine.getMineLocations();
+
+        mines.sort((a, b) => this.distanceTo(first, a)-this.distanceTo(first, b));
+
+        let i = 0;
+
+        const interval = setInterval(()=>{
+            if(i >= mines.length)
+            {
+                clearInterval(interval);
+                return;
+            }
+
+            const [mX, mY] = mines[i++];
+
+            this.engine.board[mY][mX] |= Cell.IS_REVEALED;
+
+            this.ctx.fillStyle = this.engine.getBackgroundColor([mX, mY]);
+            this.ctx.fillRect(mX * this.cellSize, mY * this.cellSize, this.cellSize, this.cellSize);
+        
+            this.ctx.drawImage(this.mineImage, mX * this.cellSize, mY * this.cellSize, this.cellSize, this.cellSize);
+        }, 15
+    );
+    }
     
     draw()
     {
@@ -113,7 +156,7 @@ class GUI
                     this.ctx.fillStyle = "red";
                     this.ctx.fillText("M", this.cellSize *c + this.cellSize/4, this.cellSize * r + this.cellSize/4 );
                 }
-                else if(this.engine.board[r][c] & Cell.IS_REVEALED)
+                if(this.engine.board[r][c] & Cell.IS_REVEALED)
                 {
                     this.ctx.fillStyle = this.engine.getFontColor([c,r]);
                     this.ctx.fillText(this.engine.getMines([c, r]).toString(), this.cellSize *c + this.cellSize/4, this.cellSize * r + this.cellSize/4);
