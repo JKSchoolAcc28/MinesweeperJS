@@ -121,6 +121,8 @@ body
   border-radius: 3px;
 
   cursor: pointer;
+
+  padding: 0.5vw;
 }
 
 #scoreboard > button:hover
@@ -130,8 +132,13 @@ body
 
 #scoreboard > button > img
 {
-  height: 5vw;
-  padding-right: 2vw;
+  height: 3vw;
+  padding-right: 0.5vw;
+}
+
+#scoreboard > button > p
+{
+  font-size: 2vw;
 }
 
 #info

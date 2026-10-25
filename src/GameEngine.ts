@@ -87,6 +87,7 @@ export default class GameEngine
 
     getStatus(): Status
     {
+        if(!this.started) return Status.UNSTARTED;
         if(this.prewin) return Status.WON;
         if(this.gameOver) return Status.LOST;
         return Status.ONGOING;
@@ -344,9 +345,13 @@ export default class GameEngine
 
     public teether([x, y]: [number, number]): [number, number][]
     {
+    
         const neighbors = this.getNeighboringCells([x, y]).filter(([nx, ny])=>(this.board[ny][nx] & Cell.IS_REVEALED) === 0) as [number, number][];
 
         const unflaggedCells = neighbors.filter(([nx, ny])=>(this.board[ny][nx] & Cell.IS_FLAGGED) === 0);
+
+        if(this.getStatus() === Status.UNSTARTED)
+            return unflaggedCells;
 
         if((this.board[y][x] & Cell.IS_REVEALED)===0) return unflaggedCells;
 

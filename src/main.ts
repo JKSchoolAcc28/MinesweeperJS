@@ -161,10 +161,10 @@ class GUI
     private step([c, r]: [number, number], teether: boolean = false)
     {
         // console.log("draw");
+
         const res = teether ? this.engine.getStatus() : this.engine.step([c, r]);
         // console.log("execute step");
-
-        if (this.labelEvent === -1)
+        if (this.labelEvent === -1 && this.engine.getStatus() !== Status.UNSTARTED)
         {
             this.labelEvent = setInterval(()=>this.updateLabels(1), 10);
         }
@@ -339,6 +339,11 @@ class GUI
     {
         
         // this.overlay.classList.add("darken");
+
+        const redoParagraph: HTMLParagraphElement = document.getElementById("redopara")! as HTMLParagraphElement;
+
+
+
         const overlayCtx = this.overlay.getContext("2d")!;
 
         overlayCtx.fillStyle = "rgba(74, 73, 73, 0.82)";
@@ -346,6 +351,8 @@ class GUI
 
         this.scoreboard.classList.remove("hidden");
         this.scoreboard.classList.add("shown");
+
+        redoParagraph.innerText = this.engine.getStatus() === Status.WON ? "Play Again" : "Try Again"
         
         this.currentTimeScoreboardLabel.innerText = this.engine.won ? this.engine.getTimeElapsed().toString() : "---";
         this.bestTimeScoreboardLabel.innerText = `${Scoreboard.getBestTime(this.engine.difficulty) ?? "---"}`;
