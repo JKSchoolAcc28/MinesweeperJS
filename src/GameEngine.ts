@@ -51,6 +51,7 @@ export default class GameEngine
     board: number[][]
     gameOver: boolean = false;
     won: boolean = false;
+    prewin: boolean = false;
 
     flagsUsed: number = 0;
     timesStarted: number = 0;
@@ -205,6 +206,8 @@ export default class GameEngine
         {
             this.timeEnded = Date.now();
             this.gameOver = true;
+
+            this.prewin = true;
 
             Scoreboard.saveBestTime(this.difficulty, this.getTimeElapsed());
 

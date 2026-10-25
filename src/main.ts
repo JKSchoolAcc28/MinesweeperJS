@@ -120,9 +120,15 @@ class GUI
 
 
         this.overlay.addEventListener("dblclick", (e)=>this.teetherClick(e), { signal: this.abortController.signal});
-        this.overlay.addEventListener("auxclick", (e)=>{
+        this.overlay.addEventListener("mousedown", (e)=>{
+
+            
             if(e.button === 1)
+            {
+                    
+                e.preventDefault();
                 this.teetherClick(e);
+            }
         }, { signal: this.abortController.signal});
 
 
@@ -162,14 +168,16 @@ class GUI
         }
         
 
-        if(res === -1 || (res === -2 && teether))
+        // console.log(`Res: ${res} Won: ${this.engine.prewin} Game Over: ${this.engine.gameOver} Teether: ${teether}`)
+
+        if(res === -1 || (res === -2 && teether && !this.engine.prewin))
             this.blowup([c, r]);
-        else if(res !== -2)
+        else if(res !== -2 || (res === -2 && teether && this.engine.prewin))
         {
             this.erase();
             this.draw();
 
-            if(res === 1)
+            if(res === 1 || res === -2)
             {
                 this.win();
             }
@@ -308,10 +316,11 @@ class GUI
 
         const highlightedCells = this.engine.teether([c, r]);
 
-        // console.log(highlightedCells);
+        // console.log(JSON.stringify(highlightedCells));
         const overlayCtx = this.overlay.getContext("2d")!;
         overlayCtx.fillStyle = "rgba(255, 255, 255, 0.3)";
 
+        //2, 5
 
         for(const [cx, cy] of highlightedCells)
         {   
