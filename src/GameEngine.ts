@@ -242,7 +242,7 @@ export default class GameEngine
         while(queue.size > 0)
         {
             // console.log(queue);
-            let [x, y] = queue.remove()! as [number, number];
+            const [x, y] = queue.remove()! as [number, number];
 
             // console.log(`(${x}, ${y})`)
 

@@ -59,7 +59,7 @@ class GUI
         this.xImage.src = X_IMAGE_ASSET;
 
 
-        window.addEventListener("resize", (_)=>{
+        window.addEventListener("resize", ()=>{
             
             const boundingBox = this.board.getBoundingClientRect();
             
@@ -84,7 +84,7 @@ class GUI
             if(this.engine.gameOver) return
             
             const rect = this.board.getBoundingClientRect();
-            const overlayRect = this.overlay.getBoundingClientRect();
+            // const overlayRect = this.overlay.getBoundingClientRect();
 
             const c = Math.floor((e.clientX - rect.left)/this.cellSize);
             const r = Math.floor((e.clientY - rect.top)/this.cellSize);
