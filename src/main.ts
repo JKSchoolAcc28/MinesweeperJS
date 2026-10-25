@@ -2,9 +2,9 @@ import './style.css'
 import GameEngine, { Scoreboard, Color, Cell } from './GameEngine';
 import type { Difficulty } from './GameEngine';
 
-const FLAG_IMAGE_ASSET = "./src/assets/flag.png";
-const MINE_IMAGE_ASSET = "./src/assets/mine.png";
-const X_IMAGE_ASSET = "./src/assets/x.png";
+const FLAG_IMAGE_ASSET = "./assets/flag.png";
+const MINE_IMAGE_ASSET = "./assets/mine.png";
+const X_IMAGE_ASSET = "./assets/x.png";
 
 class GUI
 {
