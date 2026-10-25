@@ -5,7 +5,9 @@ export enum Color
     LIGHT_CHECKER = "#AAD751",
     DARK_CHECKER = "#a2d149",
     REVEALED_LIGHT_CHECKER = "#E5C29F",
-    REVEALED_DARK_CHECKER = "#d7b899"
+    REVEALED_DARK_CHECKER = "#d7b899",
+    WON_LIGHT_CHECKER = "#8fc9f9",
+    WON_DARK_CHECKER = "#84c4f7",
 }
 
 export enum Cell
@@ -29,21 +31,42 @@ const FONT_COLORS = [
     "#a29383"
 ]
 
+export type Difficulty = "EASY" | "MEDIUM" | "HARD";
+
+const DIFFICULTY_DIMENSIONS = {
+    "EASY" : [10, 6, 10],
+    "MEDIUM" : [18, 14, 40],
+    "HARD" : [24, 20, 99]
+}
+
 export default class GameEngine
 {
     rows: number;
     cols: number;
     maxMines: number;
     started: boolean;
+    difficulty: Difficulty;
 
     mines: [number, number][];
     board: number[][]
     gameOver: boolean = false;
+    won: boolean = false;
 
     flagsUsed: number = 0;
+    timesStarted: number = 0;
+    timeEnded: number = 0;
 
-    constructor(rows: number, cols: number, maxMines = 99)
+    static fromDifficulty(difficulty: Difficulty = "MEDIUM"): GameEngine
     {
+        const [cols, rows, mines] = DIFFICULTY_DIMENSIONS[difficulty];
+
+        return new GameEngine(difficulty, rows, cols, mines);
+    }
+
+    constructor(difficulty: Difficulty, rows: number, cols: number, maxMines = 99)
+    {
+        this.difficulty = difficulty;
+
         this.rows = rows;
         this.cols = cols;
         this.maxMines = maxMines;
@@ -104,6 +127,11 @@ export default class GameEngine
         return this.board[y][x] & Cell.MAXIMUM_MINES;
     }
 
+    getFlags(coords: [number, number]): number
+    {
+        return this.getNeighboringCells(coords).filter(([x,y])=>this.board[y][x] & Cell.IS_FLAGGED).length;
+    }
+
     getNeighboringCells([x, y]: [number, number]): number[][]
     {
         const neighbors = [];
@@ -123,12 +151,18 @@ export default class GameEngine
             }
         }
 
+
+
         return neighbors;
     }
 
     getBackgroundColor([x, y]: [number, number]): string
     {
-        if(this.board[y][x] & Cell.IS_REVEALED)
+        if(this.won && this.board[y][x] & Cell.IS_REVEALED)
+        {
+            return (y+x)%2 === 0 ? Color.WON_DARK_CHECKER : Color.WON_LIGHT_CHECKER;
+        }
+        else if(this.board[y][x] & Cell.IS_REVEALED)
         {
             return (y+x)%2 == 0 ? Color.REVEALED_DARK_CHECKER : Color.REVEALED_LIGHT_CHECKER;
         }
@@ -151,6 +185,7 @@ export default class GameEngine
         {
             this.generateMines([x, y]);
             this.started = true;
+            this.timesStarted = Date.now();
         }
 
         if(this.board[y][x] & Cell.IS_REVEALED || this.board[y][x] & Cell.IS_FLAGGED) return 0;
@@ -158,6 +193,7 @@ export default class GameEngine
         if(this.board[y][x] & Cell.IS_MINE)
         {
             this.gameOver = true;
+            this.timeEnded = Date.now();
             return -1;
         }
 
@@ -165,12 +201,22 @@ export default class GameEngine
 
         this.flood_select([x, y]);
 
+        if(this.hasWon())
+        {
+            this.timeEnded = Date.now();
+            this.gameOver = true;
 
+            Scoreboard.saveBestTime(this.difficulty, this.getTimeElapsed());
+
+            return 1;
+        }
         return 0;
     }
 
     public toggleFlag([x, y]: [number, number])
     {
+        if(!this.started) return;
+
         if(this.board[y][x] & Cell.IS_REVEALED)
             return;
 
@@ -200,13 +246,121 @@ export default class GameEngine
 
             // console.log(`(${x}, ${y})`)
 
-            if(this.board[y][x] & Cell.IS_MINE || this.board[y][x] & Cell.IS_REVEALED) continue;
+            if(this.board[y][x] & (Cell.IS_MINE | Cell.IS_REVEALED | Cell.IS_FLAGGED)) continue;
             
             this.board[y][x] |= Cell.IS_REVEALED;
             
-            if(this.getMines([x,y]) === 0)
+            if(this.getMines([x,y]) === 0 && this.getFlags([x,y]) === 0)
                 this.getNeighboringCells([x, y]).forEach(e=>queue.push(e as [number, number]));
             
         }
     }
+
+    public getTimeElapsed(): number
+    {
+        return Number.parseFloat(((this.gameOver ? (this.timeEnded - this.timesStarted) : (Date.now() - this.timesStarted))/1000).toFixed(1));
+    }
+
+    public flagsLeft(): number
+    {
+        return this.maxMines - this.flagsUsed;
+    }
+
+    public hasWon(): boolean
+    {
+        if (this.flagsLeft() < 0) return false;
+
+        let unrevealedCells = 0;
+
+        for(let r = 0; r < this.rows; r++)
+        {
+            for(let c = 0; c < this.cols; c++)
+            {
+                const cell = this.board[r][c];
+
+                const isRevealed = (cell & Cell.IS_REVEALED) !== 0;
+                const isMine = (cell & Cell.IS_MINE) !== 0;
+                const isFlagged = (cell & Cell.IS_FLAGGED) !== 0;
+
+                // if(isMine && !isFlagged) unflaggedMines.push([c, r]);
+                if(!isMine && isFlagged) return false;
+                
+                if(!isRevealed) unrevealedCells++;
+            }
+        }
+        return this.maxMines === unrevealedCells;
+    }
+
+    public bfsCells(): [number, number][]
+    {
+        const cells: [number, number][] = [];
+
+        const visited: boolean[][] = Array.from({length: this.rows}, ()=> new Array(this.cols).fill(false));
+
+        const queue = new Queue<[number, number]>();
+        queue.push([0,0]);
+
+        while(queue.size != 0)
+        {
+            const [x, y] = queue.remove()!;
+
+            cells.push([x, y]);
+
+            visited[y][x] = true;
+
+            const neighbors = this.getNeighboringCells([x, y]);
+
+            for(const neighbor of neighbors)
+            {
+                if(!visited[neighbor[1]][neighbor[0]])
+                {
+                    queue.push(neighbor as [number, number]);
+                    visited[neighbor[1]][neighbor[0]] = true;
+                }
+            }
+        }
+
+        return cells;
+    }
+
+
+    public teether([x, y]: [number, number]): [number, number][]
+    {
+        const neighbors = this.getNeighboringCells([x, y]).filter(([nx, ny])=>(this.board[ny][nx] & Cell.IS_REVEALED) === 0) as [number, number][];
+
+        const unflaggedCells = neighbors.filter(([nx, ny])=>(this.board[ny][nx] & Cell.IS_FLAGGED) === 0);
+
+        const flaggedCells = neighbors.length - unflaggedCells.length;
+
+        if(flaggedCells === this.getMines([x, y]))
+        {
+            for(const cell of unflaggedCells)
+            {
+                const res = this.step(cell);
+                if(res === -1) return [];
+            }
+        }
+        
+        return unflaggedCells;
+        // return neighbors;
+    }
+}
+
+export class Scoreboard
+{
+    static saveBestTime(difficulty: Difficulty, time: number): void
+    {
+        const bestTime = Math.min(time, Number.parseInt(localStorage.getItem(difficulty) ?? time.toString()));
+        localStorage.setItem(difficulty, bestTime.toString());
+    }
+
+    static getBestTime(difficulty: Difficulty): number | null
+    {
+        const unparsedTime = localStorage.getItem(difficulty);
+
+        if (unparsedTime === null) return null;
+
+        return Number.parseFloat(unparsedTime);
+    }
+
 }

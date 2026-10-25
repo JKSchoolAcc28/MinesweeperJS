@@ -7,9 +7,41 @@
     <title>minesweeperjs</title>
   </head>
   <body>
-    <div id="app"></div>
-    <canvas id="board"></canvas>
-    <canvas id="overlay"></canvas>
+    <div id="info">
+      <select id="difficultySelection" >
+        <option>Easy</option>
+        <option selected>Medium</option>
+        <option>Hard</option>
+      </select>
+      <div>
+        <img src="./src/assets/flag.png"/>
+        <p id="mineCount">0</p>
+      </div>
+      <div>
+        <img src="./src/assets/clock_icon.png"/>
+        <p id="timer">0</p>
+      </div>
+    </div>
+    <div id="app">
+      <canvas id="board"></canvas>
+      <canvas id="overlay"></canvas>
+      <div id="scoreboard" class="hidden">
+        <span>
+          <div>
+            <img src="./src/assets/clock_icon.png"/>
+            <p id="currentTime">---</p>
+          </div>
+          <div>
+            <img src="./src/assets/trophy.png"/>
+            <p id="bestTime">---</p>
+          </div>
+        </span>
+        <button id="redo">
+          <img src="./src/assets/redo.png"/>
+          <p>Try again</p>
+        </button>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
