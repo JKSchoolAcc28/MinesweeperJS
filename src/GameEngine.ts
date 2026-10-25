@@ -19,6 +19,14 @@ export enum Cell
 
 }
 
+export enum Status
+{
+    ONGOING,
+    LOST,
+    WON,
+    UNSTARTED
+}
+
 const FONT_COLORS = [
     "",
     "#1976D2",
@@ -75,6 +83,13 @@ export default class GameEngine
         this.board = Array.from({length: this.rows}, ()=>Array.from({length: this.cols}, ()=>0));
         this.started = false;
         this.mines = [];
+    }
+
+    getStatus(): Status
+    {
+        if(this.prewin) return Status.WON;
+        if(this.gameOver) return Status.LOST;
+        return Status.ONGOING;
     }
 
     generateMines([nX, nY]: [number, number])
@@ -178,9 +193,9 @@ export default class GameEngine
         return FONT_COLORS[this.getMines(coords)];
     }
 
-    step([x, y]: [number, number]): number
+    step([x, y]: [number, number]): Status
     {
-        if(this.gameOver) return -2;
+        if(this.gameOver) return this.won ? Status.WON : Status.LOST;
 
         if(!this.started)
         {
@@ -195,7 +210,7 @@ export default class GameEngine
         {
             this.gameOver = true;
             this.timeEnded = Date.now();
-            return -1;
+            return Status.LOST;
         }
 
         // this.board[y][x] |= Cell.IS_REVEALED;
@@ -211,9 +226,9 @@ export default class GameEngine
 
             Scoreboard.saveBestTime(this.difficulty, this.getTimeElapsed());
 
-            return 1;
+            return Status.WON;
         }
-        return 0;
+        return Status.ONGOING;
     }
 
     public toggleFlag([x, y]: [number, number])
@@ -333,6 +348,8 @@ export default class GameEngine
 
         const unflaggedCells = neighbors.filter(([nx, ny])=>(this.board[ny][nx] & Cell.IS_FLAGGED) === 0);
 
+        if((this.board[y][x] & Cell.IS_REVEALED)===0) return unflaggedCells;
+
         const flaggedCells = neighbors.length - unflaggedCells.length;
 
         if(flaggedCells === this.getMines([x, y]))
@@ -340,7 +357,7 @@ export default class GameEngine
             for(const cell of unflaggedCells)
             {
                 const res = this.step(cell);
-                if(res === -1) return [];
+                if(res === Status.LOST) return [];
             }
         }
         

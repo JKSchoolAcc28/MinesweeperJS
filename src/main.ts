@@ -1,5 +1,5 @@
 import './style.css'
-import GameEngine, { Scoreboard, Color, Cell } from './GameEngine';
+import GameEngine, { Scoreboard, Color, Cell, Status } from './GameEngine';
 import type { Difficulty } from './GameEngine';
 
 const FLAG_IMAGE_ASSET = "./assets/flag.png";
@@ -107,7 +107,9 @@ class GUI
 
         this.overlay.addEventListener("click", (e) => {
 
-            if(this.engine.gameOver) return;
+            if(this.engine.gameOver || e.button === 1) return;
+
+            console.log("click");
 
             const rect = this.board.getBoundingClientRect();
 
@@ -159,7 +161,7 @@ class GUI
     private step([c, r]: [number, number], teether: boolean = false)
     {
         // console.log("draw");
-        const res = this.engine.step([c, r]);
+        const res = teether ? this.engine.getStatus() : this.engine.step([c, r]);
         // console.log("execute step");
 
         if (this.labelEvent === -1)
@@ -170,14 +172,14 @@ class GUI
 
         // console.log(`Res: ${res} Won: ${this.engine.prewin} Game Over: ${this.engine.gameOver} Teether: ${teether}`)
 
-        if(res === -1 || (res === -2 && teether && !this.engine.prewin))
+        if(res === Status.LOST)
             this.blowup([c, r]);
-        else if(res !== -2 || (res === -2 && teether && this.engine.prewin))
+        else if(res == Status.WON || res === Status.ONGOING)
         {
             this.erase();
             this.draw();
 
-            if(res === 1 || res === -2)
+            if(res === Status.WON)
             {
                 this.win();
             }
