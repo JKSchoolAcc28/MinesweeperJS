@@ -2,9 +2,19 @@ import './style.css'
 import GameEngine, { Scoreboard, Color, Cell, Status } from './GameEngine';
 import type { Difficulty } from './GameEngine';
 
-const FLAG_IMAGE_ASSET = "./assets/flag.png";
-const MINE_IMAGE_ASSET = "./assets/mine.png";
-const X_IMAGE_ASSET = "./assets/x.png";
+const loadImage = (image_path: string) => {
+    const img = new Image();
+    img.src = image_path;
+    return img;
+}
+
+const FLAG_IMAGE_ASSET = loadImage("./assets/flag.png");
+const MINE_IMAGE_ASSET = loadImage("./assets/mine.png");
+const X_IMAGE_ASSET = loadImage("./assets/x.png");
+
+const MINE_BODY_ASSET = loadImage("./assets/mineBody.png");
+const MINE_OVERLAY_ASSET = loadImage("./assets/mineOverlay.png");
+
 
 class GUI
 {
@@ -23,10 +33,6 @@ class GUI
     engine: GameEngine;
     
     cellSize: number;
-
-    flagImage: HTMLImageElement;
-    mineImage: HTMLImageElement;
-    xImage: HTMLImageElement;
 
     labelEvent: number = -1;
 
@@ -48,16 +54,6 @@ class GUI
         // this.cellSize = Math.floor(Math.min(boundingBox.width/this.engine.cols, boundingBox.height/this.engine.rows));
         this.cellSize = (boundingBox.width/this.engine.cols);
         this.ctx.font = `bold ${this.board.width/boundingBox.width*10}px sans-serif`;
-        
-        this.flagImage = new Image();
-        this.flagImage.src = FLAG_IMAGE_ASSET;
-
-        this.mineImage = new Image();
-        this.mineImage.src = MINE_IMAGE_ASSET;
-
-        this.xImage = new Image();
-        this.xImage.src = X_IMAGE_ASSET;
-
 
         window.addEventListener("resize", ()=>{
             
@@ -95,6 +91,12 @@ class GUI
 
             overlayCtx.fillStyle = "rgba(255, 255, 255, 0.3)";
             overlayCtx.fillRect(c * this.cellSize, r * this.cellSize, this.cellSize, this.cellSize);
+
+            if(e.buttons & 4)
+            {
+                this.teetherClick(e, true);
+            }
+
         }, { signal: this.abortController.signal});
 
         this.overlay.addEventListener("mouseleave", ()=> {
@@ -234,14 +236,51 @@ class GUI
             this.ctx.fillStyle = this.engine.getBackgroundColor([mX, mY]);
             this.ctx.fillRect(mX * this.cellSize, mY * this.cellSize, this.cellSize, this.cellSize);
 
-            this.ctx.drawImage((this.engine.board[mY][mX] & Cell.IS_MINE) === 0 ? this.xImage : this.mineImage, mX * this.cellSize, mY * this.cellSize, this.cellSize, this.cellSize);
-        }, 15
+            this.drawMine([mX, mY]);
+        }, 30
     );
+    }
+
+    private drawMine([x, y]: [number, number])
+    {
+        if((this.engine.board[y][x] & Cell.IS_MINE) === 0)
+            this.ctx.drawImage(X_IMAGE_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+        else
+        {
+            const overlayCtx = this.overlay.getContext("2d")!;
+
+            overlayCtx.clearRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+            overlayCtx.drawImage(MINE_BODY_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+            
+            const imageData = overlayCtx.getImageData(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+            const { data : dataBuffer } = imageData;
+
+            const COLOR = [0,0,0].map(e=>Math.floor(256 * Math.random()));
+
+            for(let i = 0; i < dataBuffer.length; i+=4)
+            {
+                
+                if(Math.abs(dataBuffer[i+3]-255) > 50)
+                {
+                    dataBuffer[i+3] = 0;
+                    continue;
+                }
+                
+                dataBuffer[i] = COLOR[0];
+                dataBuffer[i+1] = COLOR[1];
+                dataBuffer[i+2] = COLOR[2];
+            }
+
+            overlayCtx.putImageData(imageData, x * this.cellSize, y * this.cellSize);
+
+            overlayCtx.drawImage(MINE_OVERLAY_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+        }
     }
 
     async win()
     {
-        const cells = this.engine.bfsCells().filter(([x,y])=> (this.engine.board[y][x] & Cell.IS_MINE) === 0);
+        const magnitude = ([x,y]: [number, number]) => Math.sqrt(x*x + y*y);
+        const cells = this.engine.bfsCells().filter(([x,y])=> (this.engine.board[y][x] & Cell.IS_MINE) === 0).sort((a,b)=> magnitude(a) - magnitude(b));
         
         let i = 0;
 
@@ -285,11 +324,11 @@ class GUI
 
                 if(this.engine.board[r][c] & Cell.IS_FLAGGED)
                 {
-                    this.ctx.drawImage(this.flagImage, this.cellSize*c, this.cellSize*r, this.cellSize, this.cellSize);
+                    this.ctx.drawImage(FLAG_IMAGE_ASSET, this.cellSize*c, this.cellSize*r, this.cellSize, this.cellSize);
                 }
                 else if(this.engine.board[r][c] & Cell.IS_MINE && this.engine.board[r][c] & Cell.IS_REVEALED)
                 {
-                    this.ctx.drawImage(this.mineImage, this.cellSize * c, this.cellSize* r, this.cellSize, this.cellSize);
+                    this.drawMine([c, r]);
                 }
                 // else if(this.engine.board[r][c] & Cell.IS_MINE)
                 // {
@@ -317,7 +356,7 @@ class GUI
         }
     }
 
-    private teetherClick(e: MouseEvent)
+    private teetherClick(e: MouseEvent, preview: boolean = false)
     {
         e.preventDefault();
 
@@ -328,7 +367,7 @@ class GUI
         const c = Math.floor((e.clientX - rect.left)/this.cellSize);
         const r = Math.floor((e.clientY - rect.top)/this.cellSize);
 
-        const highlightedCells = this.engine.teether([c, r]);
+        const highlightedCells = this.engine.teether([c, r], preview);
 
         // console.log(JSON.stringify(highlightedCells));
         const overlayCtx = this.overlay.getContext("2d")!;
@@ -336,14 +375,21 @@ class GUI
 
         //2, 5
 
+        const holdClickAbortController = new AbortController();
+
         for(const [cx, cy] of highlightedCells)
         {   
             overlayCtx.fillRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
-            setTimeout(()=>{
-                overlayCtx.clearRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
-            }, 100)                
+            
+            
         }
-
+        
+        window.addEventListener("mouseup", ()=>{
+            for(const [cx, cy] of highlightedCells)
+                overlayCtx.clearRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
+            holdClickAbortController.abort();
+        }, { signal: holdClickAbortController.signal});
+        
         this.step([c, r], true);
     }
 

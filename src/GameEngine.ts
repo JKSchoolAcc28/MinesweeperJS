@@ -343,7 +343,7 @@ export default class GameEngine
     }
 
 
-    public teether([x, y]: [number, number]): [number, number][]
+    public teether([x, y]: [number, number], preview: boolean = false): [number, number][]
     {
     
         const neighbors = this.getNeighboringCells([x, y]).filter(([nx, ny])=>(this.board[ny][nx] & Cell.IS_REVEALED) === 0) as [number, number][];
@@ -357,7 +357,7 @@ export default class GameEngine
 
         const flaggedCells = neighbors.length - unflaggedCells.length;
 
-        if(flaggedCells === this.getMines([x, y]))
+        if(!preview && flaggedCells === this.getMines([x, y]))
         {
             for(const cell of unflaggedCells)
             {
