@@ -17,3 +17,5 @@
 * Holding a chord keeps the cells highlighted.
 * Make the board completely sized to the screen.
 * Off-center text.
+* Change font to Google Sans
+* Fix visual error on initial load.
