@@ -12,6 +12,10 @@ html
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Google Sans";
+  font-weight: 400;
+  font-optical-sizing: auto;
+  font-style: normal;
 }
 
 body

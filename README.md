@@ -10,7 +10,7 @@
 * SFX
 
 # Bug Fixes
-* Get rid of scrolling
+* ~~Get rid of scrolling~~
 * Make the mines different colors
 * Left + Right Click = Middle Click
 * Animations for the beginning

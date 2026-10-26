@@ -298,6 +298,7 @@ class GUI
                 else if(!this.engine.won && this.engine.board[r][c] & Cell.IS_REVEALED)
                 {
                     this.ctx.fillStyle = this.engine.getFontColor([c,r]);
+                    this.ctx.font = "Google Sans";
                     this.ctx.fillText(this.engine.getMines([c, r]).toString(), this.cellSize *c + this.cellSize/4, this.cellSize * r + this.cellSize/4);
                 }
 
