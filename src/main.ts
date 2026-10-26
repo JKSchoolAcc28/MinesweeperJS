@@ -275,6 +275,7 @@ class GUI
         this.ctx.textAlign = "left";
         this.ctx.textBaseline = "top";
         this.ctx.font = `bold ${Math.floor(this.cellSize*0.5)}px sans-serif`;
+        
         for(let r = 0; r < this.engine.rows; r++)
         {
             for(let c = 0; c < this.engine.cols; c++)
@@ -299,7 +300,17 @@ class GUI
                 {
                     this.ctx.fillStyle = this.engine.getFontColor([c,r]);
                     this.ctx.font = "Google Sans";
-                    this.ctx.fillText(this.engine.getMines([c, r]).toString(), this.cellSize *c + this.cellSize/4, this.cellSize * r + this.cellSize/4);
+
+                    const label = this.engine.getMines([c, r]).toString();
+
+                    const metrics = this.ctx.measureText(label);
+                    const textWidth = metrics.width;
+                    const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+
+                    const xOffset = (this.cellSize - textWidth)/2
+                    const yOffset = (this.cellSize - textHeight)/2;
+
+                    this.ctx.fillText(label, this.cellSize *c + xOffset, this.cellSize * r + yOffset);
                 }
 
             }
